@@ -1,0 +1,63 @@
+# .clang-format — adapted for C code
+# Base style: LLVM, with common C-friendly adjustments
+---
+Language:        Cpp
+Standard:        c++03   # Keeps formatting conservative / C-compatible
+
+# --- Indentation & Width ---
+IndentWidth:             4
+TabWidth:                4
+UseTab:                  Never
+ColumnLimit:             80
+ContinuationIndentWidth: 4
+
+# --- Braces ---
+BreakBeforeBraces:       Linux   # Opening brace on its own line (K&R: Linux)
+# Use "Linux" for K&R style (brace on same line for functions, Allman for control flow)
+
+# --- Spaces ---
+SpaceBeforeParens:           ControlStatements
+SpaceInEmptyParentheses:     false
+SpaceAfterCStyleCast:        true
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses:         false
+SpacesInSquareBrackets:      false
+SpaceBeforeAssignmentOperators: true
+SpaceAroundPointerQualifiers: Default
+PointerAlignment:            Right   # int *ptr  (change to Left for int* ptr)
+
+# --- Alignment ---
+AlignConsecutiveAssignments:
+  Enabled:          false
+AlignConsecutiveDeclarations:
+  Enabled:          false
+AlignTrailingComments:
+  Kind:             Always
+  OverEmptyLines:   1
+
+# --- Line breaks ---
+AllowShortFunctionsOnASingleLine:   None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine:       false
+AllowShortBlocksOnASingleLine:      Never
+BreakBeforeBinaryOperators:         None
+BreakBeforeTernaryOperators:        true
+AlwaysBreakAfterReturnType:         None
+
+# --- Include sorting ---
+SortIncludes:       CaseSensitive
+IncludeBlocks:      Regroup
+IncludeCategories:
+  - Regex:    '^".*\.h"'     # Project headers first
+    Priority: 1
+  - Regex:    '^<.*\.h>'     # C system headers
+    Priority: 2
+  - Regex:    '^<.*>'        # Other system headers
+    Priority: 3
+
+# --- Misc ---
+MaxEmptyLinesToKeep:      1
+KeepEmptyLinesAtTheStartOfBlocks: false
+InsertTrailingCommas:     None
+ReflowComments:           true
+...

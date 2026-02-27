@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Emscripten-Generated Code</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        background: #000;
+        overflow: hidden;
+        font-family: monospace;
+      }
+
+      #canvas-wrapper {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      canvas.emscripten {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        background-color: black;
+      }
+
+      #loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #111;
+        color: #aaa;
+        gap: 16px;
+        z-index: 10;
+      }
+
+      .spinner {
+        height: 40px;
+        width: 40px;
+        animation: rotation 0.8s linear infinite;
+        border: 6px solid #333;
+        border-top-color: rgb(0,150,240);
+        border-radius: 100%;
+      }
+
+      @keyframes rotation {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+
+      #status { font-size: 13px; color: #888; }
+
+      #progress {
+        width: 200px;
+        accent-color: rgb(0,150,240);
+      }
+
+      #overlay-controls {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        z-index: 100;
+      }
+
+      .ctrl-btn {
+        background: rgba(0,0,0,0.55);
+        color: #ddd;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-family: monospace;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        user-select: none;
+      }
+
+      .ctrl-btn:hover:not(:disabled) {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      }
+
+      .ctrl-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      #console-btn.active {
+        background: rgba(0, 200, 80, 0.25);
+        border-color: rgba(0, 200, 80, 0.6);
+        color: #00e060;
+      }
+
+      #console-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 220px;
+        background: rgba(10,10,10,0.92);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(4px);
+        z-index: 99;
+        display: none;
+      }
+
+      #console-panel.visible {
+        display: block;
+      }
+
+      #output {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        color: #00e060;
+        border: none;
+        outline: none;
+        resize: none;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-family: monospace;
+        line-height: 1.5;
+      }
+
+      #exit-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.78);
+        backdrop-filter: blur(6px);
+        z-index: 200;
+      }
+
+      #exit-overlay.visible {
+        display: flex;
+      }
+
+      #exit-box {
+        text-align: center;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        animation: fadeInUp 0.4s ease;
+      }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      #exit-icon   { font-size: 56px; opacity: 0.6; }
+      #exit-title  { font-size: 28px; font-weight: bold; letter-spacing: 0.02em; }
+      #exit-hint   { font-size: 16px; color: #aaa; }
+
+      #exit-hint kbd {
+        display: inline-block;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 5px;
+        padding: 2px 10px;
+        font-family: monospace;
+        font-size: 15px;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div id="canvas-wrapper">
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+      <div id="loading-overlay">
+        <div class="spinner" id="spinner"></div>
+        <div id="status">Downloading...</div>
+        <progress value="0" max="100" id="progress" hidden=1></progress>
+      </div>
+    </div>
+
+    <!-- Required by Emscripten internals, hidden and unchecked -->
+    <input type="checkbox" id="resize"      style="display:none">
+    <input type="checkbox" id="pointerLock" style="display:none">
+
+    <div id="overlay-controls">
+      <button class="ctrl-btn" id="console-btn"    onclick="toggleConsole()">Console</button>
+      <button class="ctrl-btn" id="fullscreen-btn" onclick="goFullscreen()">Fullscreen</button>
+    </div>
+
+    <div id="console-panel">
+      <textarea id="output" readonly></textarea>
+    </div>
+
+    <div id="exit-overlay">
+      <div id="exit-box">
+        <div id="exit-icon">&#x23F9;</div>
+        <div id="exit-title">Application has exited</div>
+        <div id="exit-hint">Press <kbd>F5</kbd> to reload</div>
+      </div>
+    </div>
+
+    <script type='text/javascript'>
+    // Everything lives inside an IIFE so our local vars (statusElement, etc.)
+    // never collide with identifiers declared in the generated BlockBlaster.js
+    // (e.g. ExitStatus, Module internals, etc.).
+    // The only global we expose is `Module`, which Emscripten requires.
+    (function() {
+
+      var _status   = document.getElementById('status');
+      var _progress = document.getElementById('progress');
+      var _spinner  = document.getElementById('spinner');
+      var _loading  = document.getElementById('loading-overlay');
+      var _canvas   = document.getElementById('canvas');
+      var _output   = document.getElementById('output');
+      if (_output) _output.value = '';
+
+      // --- Saved canvas size for fullscreen restore ---
+      var _savedW = 0;
+      var _savedH = 0;
+
+      // Hide loading overlay as soon as canvas gets real pixel dimensions.
+      // This is the most reliable signal that the WASM is actually running.
+      var _observer = new MutationObserver(function() {
+        if (_canvas.width > 0 && _canvas.height > 0) {
+          if (_savedW === 0) { _savedW = _canvas.width; _savedH = _canvas.height; }
+          _loading.style.display = 'none';
+          _observer.disconnect();
+        }
+      });
+      _observer.observe(_canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+
+      // Fullscreen restore
+      function _onFsChange() {
+        var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+        if (!isFs && _savedW > 0) {
+          _canvas.width  = _savedW;
+          _canvas.height = _savedH;
+          if (typeof Module !== 'undefined' && typeof Module.setCanvasSize === 'function') {
+            Module.setCanvasSize(_savedW, _savedH);
+          }
+        }
+      }
+      document.addEventListener('fullscreenchange',       _onFsChange);
+      document.addEventListener('webkitfullscreenchange', _onFsChange);
+      document.addEventListener('mozfullscreenchange',    _onFsChange);
+
+      // --- UI (must be global so onclick= attributes can reach them) ---
+      window.toggleConsole = function() {
+        document.getElementById('console-panel').classList.toggle('visible');
+        document.getElementById('console-btn').classList.toggle('active');
+      };
+
+      window.goFullscreen = function() {
+        if (typeof Module !== 'undefined' && typeof Module.requestFullscreen === 'function') {
+          Module.requestFullscreen(false, false);
+        } else {
+          (_canvas.requestFullscreen || _canvas.webkitRequestFullscreen || _canvas.mozRequestFullScreen || function(){}).call(_canvas);
+        }
+      };
+
+      function _appendOutput(text) {
+        if (_output) {
+          _output.value += text + "\n";
+          _output.scrollTop = _output.scrollHeight;
+        }
+      }
+
+      // --- Exit detection ---
+      var _exited = false;
+
+      function _onExit(code) {
+        if (_exited) return;
+        _exited = true;
+        document.getElementById('exit-overlay').classList.add('visible');
+        document.getElementById('fullscreen-btn').disabled = true;
+        _appendOutput('\n[Process exited with code ' + code + ']');
+      }
+
+      // After the generated script loads, poll until Module.quit exists then wrap it.
+      window.addEventListener('load', function() {
+        var attempts = 0;
+        var poll = setInterval(function() {
+          attempts++;
+          if (typeof Module !== 'undefined' && typeof Module.quit === 'function') {
+            clearInterval(poll);
+            var _orig = Module.quit;
+            Module.quit = function(code, exception) {
+              _onExit(code);
+              try { _orig(code, exception); } catch(e) {}
+            };
+          }
+          if (attempts > 300) clearInterval(poll);
+        }, 100);
+      });
+
+      _canvas.addEventListener('webglcontextlost', function(e) {
+        alert('WebGL context lost. You will need to reload the page.');
+        e.preventDefault();
+      }, false);
+
+      // --- Module (global, required by Emscripten) ---
+      // Minimal: no preRun/postRun so we don't interfere with the glue script.
+      window.Module = {
+        noExitRuntime: false,
+
+        onExit: function(code) { _onExit(code); },
+
+        print: function() {
+          var text = Array.prototype.join.call(arguments, ' ');
+          console.log(text);
+          _appendOutput(text);
+        },
+
+        printErr: function() {
+          var text = Array.prototype.join.call(arguments, ' ');
+          console.warn(text);
+          _appendOutput(text);
+        },
+
+        canvas: _canvas,
+
+        setStatus: function(text) {
+          if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+          var m   = text.match(new RegExp('([^(]+)\\((\\d+(\\.\\d+)?)\\/(\\d+)\\)'));
+          var now = Date.now();
+          if (m && 30 > now - Module.setStatus.last.time) return;
+          Module.setStatus.last.time = now;
+          Module.setStatus.last.text = text;
+          if (m) {
+            text = m[1];
+            _progress.value  = parseInt(m[2]) * 100;
+            _progress.max    = parseInt(m[4]) * 100;
+            _progress.hidden = false;
+            _spinner.hidden  = false;
+          } else {
+            _progress.value  = null;
+            _progress.max    = null;
+            _progress.hidden = true;
+            if (!text) {
+              _spinner.hidden       = true;
+              _loading.style.display = 'none';
+              if (_canvas.width > 0 && _savedW === 0) { _savedW = _canvas.width; _savedH = _canvas.height; }
+            }
+          }
+          _status.innerHTML = text;
+        },
+
+        totalDependencies: 0,
+
+        monitorRunDependencies: function(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          Module.setStatus(left
+            ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')'
+            : 'All downloads complete.');
+        }
+      };
+
+      Module.setStatus('Downloading...');
+
+      window.onerror = function() {
+        Module.setStatus('Exception thrown, see JavaScript console');
+        _spinner.style.display = 'none';
+        Module.setStatus = function(t) { if (t) console.error('[post-exception status] ' + t); };
+      };
+
+    })(); // end IIFE
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

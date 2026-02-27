@@ -1,0 +1,83 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+#*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+#*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# git cloned Libraries
+allegro5/
+libogg/
+libvorbis/
+freetype/
+
+# swap files
+.*.swp
+
+# wasm build deps
+build_emscripten/deps
+
+# android build deps
+build_android/
+
+# Android release signing – NEVER commit these
+keystore.properties
+*.keystore
+android/release.keystore
+
+# bundletool is a downloaded binary, not source
+bundletool.jar
+
+# CodeQL artifacts
+_codeql_detected_source_root
+
+# highscores
+DATA/blockblaster_playername.txt
+DATA/blockblaster_scores.txt
+DATA/blockblaster_settings.txt
