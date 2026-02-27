@@ -1,10 +1,12 @@
+<img width="298" height="447" alt="image" src="https://github.com/user-attachments/assets/58d6f3da-0913-4607-93d4-6628ca000d9e" /> <img width="302" height="452" alt="image" src="https://github.com/user-attachments/assets/4f9c65ae-67fa-43d1-b809-8fc022f7199a" />
+
 # Block Blaster
 
 A fast-paced block-placement puzzle game inspired by Block Blast. Drag and drop pieces onto the grid to clear rows and columns -- simple to learn, endlessly satisfying to master.
 
 Download and compile it yourself, or [play the online, browser version](https://www.nilorea.net/Games/BlockBlaster/)
 
-Repository contain a Linux binary (compiled on Debian testing, need [additional libraries](Linux-dependencies) to work)
+Repository contain a Linux binary (compiled on Debian testing, need [some additional libraries](https://github.com/gullradriel/BlockBlaster?tab=readme-ov-file#linux-dependencies)) to work)
 
 Android version is only available as a DEBUG APK, until I get it to the play store
 
