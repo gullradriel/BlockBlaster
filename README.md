@@ -4,7 +4,7 @@ A fast-paced block-placement puzzle game inspired by Block Blast. Drag and drop 
 
 Download and compile it yourself, or [play the online, browser version](https://www.nilorea.net/Games/BlockBlaster/)
 
-Repository contain a Linux binary (compiled on Debian testing)
+Repository contain a Linux binary (compiled on Debian testing, need [additional libraries](Linux-dependencies) to work)
 
 Android version is only available as a DEBUG APK, until I get it to the play store
 
@@ -144,6 +144,20 @@ Game assets bundled in the `DATA/` directory:
 | `intro.ogg` | Music: main menu / game over |
 | `music1.ogg` | Music: in-game track 1 |
 | `music2.ogg` | Music: in-game track 2 |
+
+# Linux dependencies
+
+```
+sudo apt-get install -y \
+  liballegro-acodec5.2 \
+  liballegro-audio5.2 \
+  liballegro-primitives5.2 \
+  liballegro-ttf5.2 \
+  liballegro-font5.2 \
+  liballegro5.2 \
+  libopenal1 \
+  libdbus-1-3
+```
 
 ## Contributing
 
