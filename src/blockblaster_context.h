@@ -145,7 +145,7 @@ extern float g_display_scale;
  *
  * Ensures tray boxes never grow larger than this many cells, keeping them
  * well under one quarter of the grid width regardless of PIECES_PER_SET. */
-#define TRAY_BOX_MAX_CELLS 2.0f
+#define TRAY_BOX_MAX_CELLS 3.0f
 
 /** \brief Uncapped tray height in cell units (GRID_W / PIECES_PER_SET). */
 #define TRAY_H_CELLS_RAW ((float) GRID_W / (float) PIECES_PER_SET)
