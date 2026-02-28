@@ -204,6 +204,9 @@ int main(int argc, char *argv[])
 
     bool running = true;
     bool redraw = true;
+#ifdef ALLEGRO_ANDROID
+    bool display_halted = false;
+#endif
 
     al_start_timer(timer);
 
@@ -555,8 +558,28 @@ int main(int argc, char *argv[])
             blockblaster_update_view_offset(&gm);
             gm.font = blockblaster_reload_font(
                 gm.font, font_path, blockblaster_font_effective_scale(&gm));
-
+#ifdef ALLEGRO_ANDROID
+        } else if (ev.type == ALLEGRO_EVENT_DISPLAY_SWITCH_OUT) {
+            /* Android screen-lock or transient focus loss: stop the
+               timer so events do not pile up while the display is off
+               (same approach as the Emscripten tab-visibility handler). */
+            if (gm.dragging) {
+                gm.dragging = false;
+                gm.can_drop_preview = false;
+                blockblaster_clear_predicted(&gm);
+            }
+            if (gm.returning) {
+                gm.returning = false;
+                gm.return_t = 0.0f;
+            }
+            if (music_instance)
+                al_set_sample_instance_playing(music_instance, false);
+            al_stop_timer(timer);
+#endif
         } else if (ev.type == ALLEGRO_EVENT_DISPLAY_HALT_DRAWING) {
+#ifdef ALLEGRO_ANDROID
+            display_halted = true;
+#endif
             if (gm.dragging) {
                 gm.dragging = false;
                 gm.can_drop_preview = false;
@@ -572,6 +595,9 @@ int main(int argc, char *argv[])
             al_acknowledge_drawing_halt(display);
 
         } else if (ev.type == ALLEGRO_EVENT_DISPLAY_RESUME_DRAWING) {
+#ifdef ALLEGRO_ANDROID
+            display_halted = false;
+#endif
             al_acknowledge_drawing_resume(display);
             al_flush_event_queue(queue);
             al_set_target_backbuffer(display);
@@ -586,6 +612,26 @@ int main(int argc, char *argv[])
             if (music_instance)
                 al_set_sample_instance_playing(music_instance, true);
             al_start_timer(timer);
+#ifdef ALLEGRO_ANDROID
+        } else if (ev.type == ALLEGRO_EVENT_DISPLAY_SWITCH_IN) {
+            /* Unlocked / regained focus.  When the surface was never
+               destroyed (screen-lock), RESUME_DRAWING will not arrive.
+               Restart the timer ourselves.  If RESUME_DRAWING already
+               handled the resume, the timer is running and we skip. */
+            if (!display_halted && !al_get_timer_started(timer)) {
+                al_flush_event_queue(queue);
+                al_set_target_backbuffer(display);
+                gm.display_width = al_get_display_width(display);
+                gm.display_height = al_get_display_height(display);
+                blockblaster_update_view_offset(&gm);
+                al_android_set_apk_file_interface();
+                gm.font = blockblaster_reload_font(
+                    gm.font, font_path, blockblaster_font_effective_scale(&gm));
+                if (music_instance)
+                    al_set_sample_instance_playing(music_instance, true);
+                al_start_timer(timer);
+            }
+#endif
         }
 
         /* ---- Draw ---- */
