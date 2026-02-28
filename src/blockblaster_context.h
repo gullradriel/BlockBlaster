@@ -125,8 +125,8 @@ extern float g_display_scale;
  * CELL is constrained by both axes so the grid and tray always fit inside
  * the virtual canvas:
  *  - Width  constraint: CELL_W = (WIN_W - 2*GRID_MARGIN) / GRID_W
- *  - Height constraint: CELL_H = (WIN_H-171) / (GRID_H + GRID_W/PIECES_PER_SET
- * + 0.5)
+ *  - Height constraint: CELL_H = (WIN_H-171) / (GRID_H + TRAY_H_CELLS + 0.5)
+ *    where TRAY_H_CELLS = min(GRID_W/PIECES_PER_SET, TRAY_BOX_MAX_CELLS)
  *  - CELL = min(CELL_W, CELL_H)
  *
  * The exit button is pinned independently to WIN_H - btn_h - 5, so only the
@@ -141,13 +141,31 @@ extern float g_display_scale;
 /** \brief Cell size derived from the canvas width. */
 #define CELL_W ((WIN_W - 2.0f * GRID_MARGIN) / (float) GRID_W)
 
+/** \brief Maximum tray box size in cell units.
+ *
+ * Ensures tray boxes never grow larger than this many cells, keeping them
+ * well under one quarter of the grid width regardless of PIECES_PER_SET. */
+#define TRAY_BOX_MAX_CELLS 2.0f
+
+/** \brief Uncapped tray height in cell units (GRID_W / PIECES_PER_SET). */
+#define TRAY_H_CELLS_RAW ((float) GRID_W / (float) PIECES_PER_SET)
+
+/** \brief Capped tray height in cell units used for the height constraint.
+ *
+ * min(TRAY_H_CELLS_RAW, TRAY_BOX_MAX_CELLS) so the grid is as large as
+ * possible even when few pieces are offered per turn. */
+#define TRAY_H_CELLS                                                           \
+    (TRAY_H_CELLS_RAW < TRAY_BOX_MAX_CELLS ? TRAY_H_CELLS_RAW                \
+                                             : TRAY_BOX_MAX_CELLS)
+
 /** \brief Cell size derived from the canvas height.
  *
- * The divisor is GRID_H + GRID_W/PIECES_PER_SET + 0.5 so the grid and tray
- * always fit vertically.  At the default 10x10/4 this equals 13.0. */
+ * The divisor is GRID_H + TRAY_H_CELLS + 0.5 so the grid and tray always
+ * fit vertically.  TRAY_H_CELLS is capped at TRAY_BOX_MAX_CELLS so the
+ * grid stays as large as possible regardless of PIECES_PER_SET. */
 #define CELL_H                                                                 \
     (((float) WIN_H - 171.0f) /                                                \
-     ((float) GRID_H + (float) GRID_W / (float) PIECES_PER_SET + 0.5f))
+     ((float) GRID_H + TRAY_H_CELLS + 0.5f))
 
 /**
  * \brief Actual cell size in pixels, the minimum of CELL_W and CELL_H.
@@ -212,13 +230,6 @@ extern float g_display_scale;
 #define TRAY_Y (GRID_Y + (float) GRID_H * CELL + 60.0f)
 
 /**
- * \brief Horizontal position (px) of the left edge of the first tray slot.
- *
- * The tray is aligned with the left edge of the grid.
- */
-#define TRAY_X GRID_X
-
-/**
  * \brief Fixed horizontal gap (px) between adjacent tray slots.
  *
  * A small constant gap so slots never touch regardless of PIECES_PER_SET.
@@ -226,19 +237,39 @@ extern float g_display_scale;
 #define TRAY_BOX_GAP 4.0f
 
 /**
+ * \brief Uncapped tray box size that would span the full grid width.
+ *
+ * This is the old formula: PIECES_PER_SET boxes plus gaps fill exactly
+ * GRID_W * CELL.  Used as one input to the capped TRAY_BOX calculation.
+ */
+#define TRAY_BOX_UNCAPPED                                                      \
+    (((float) GRID_W * CELL - (float) (PIECES_PER_SET - 1) * TRAY_BOX_GAP) /  \
+     (float) PIECES_PER_SET)
+
+/**
  * \brief Width (and height, px) of each tray slot box.
  *
- * Computed so that PIECES_PER_SET boxes plus (PIECES_PER_SET-1) gaps span
- * exactly GRID_W * CELL:
- *   TRAY_BOX * PIECES_PER_SET + TRAY_BOX_GAP * (PIECES_PER_SET - 1)
- *     = GRID_W * CELL
- *
- * With PIECES_PER_SET > 3 the old fixed CELL*3 box exceeded the grid width
- * and caused overlap; this formula always fits.
+ * Capped at TRAY_BOX_MAX_CELLS * CELL so that tray boxes never approach
+ * one quarter of the grid width, regardless of how few pieces are offered.
  */
 #define TRAY_BOX                                                               \
-    (((float) GRID_W * CELL - (float) (PIECES_PER_SET - 1) * TRAY_BOX_GAP) /   \
-     (float) PIECES_PER_SET)
+    (TRAY_BOX_UNCAPPED < (TRAY_BOX_MAX_CELLS * CELL) ? TRAY_BOX_UNCAPPED      \
+                                                       : (TRAY_BOX_MAX_CELLS * CELL))
+
+/**
+ * \brief Total horizontal extent (px) of all tray slots including gaps.
+ */
+#define TRAY_TOTAL_W                                                           \
+    ((float) PIECES_PER_SET * TRAY_BOX +                                       \
+     (float) (PIECES_PER_SET - 1) * TRAY_BOX_GAP)
+
+/**
+ * \brief Horizontal position (px) of the left edge of the first tray slot.
+ *
+ * The tray is centred horizontally within the grid area so that boxes are
+ * always visually centred regardless of their number.
+ */
+#define TRAY_X (GRID_X + ((float) GRID_W * CELL - TRAY_TOTAL_W) * 0.5f)
 
 /** @} */
 

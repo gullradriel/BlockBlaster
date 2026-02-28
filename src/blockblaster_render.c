@@ -252,7 +252,7 @@ void blockblaster_draw_tray(const GameContext *gm)
         blockblaster_draw_shape_preview(s, px, py, pc, gm->tray[i].theme.fill);
     }
 
-    al_draw_textf(font, al_map_rgb(220, 220, 235), TRAY_X, TRAY_Y - 34, 0,
+    al_draw_textf(font, al_map_rgb(220, 220, 235), GRID_X, TRAY_Y - 34, 0,
                   "Pieces (drag onto grid):");
 }
 
